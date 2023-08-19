@@ -2,9 +2,9 @@ const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
     host: '127.0.0.1',
-    user: 'wepp_web_api',
-    password: '$6^@VHzQP@-=#tfC@%AGXwq_+zegWqGr&5wpR=92FPk2PxW#8jjfbSYmVnD-vZu8B69^csf%LSvmFgxUCtG5-n6YbR*YFmf46tk^',
-    database: 'WeppersdorfDB'
+    user: 'your user',
+    password: 'your password',
+    database: 'your database'
 });
 
 connection.connect((err) => {
