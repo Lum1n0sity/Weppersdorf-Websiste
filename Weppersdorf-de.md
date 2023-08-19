@@ -1,5 +1,8 @@
+✅ = Done
+(W) = Working on
+
 Features Website:
-- Termin Creator
+- Termin Creator (W)
 - Presseberichte (API ?)
 - Kontakt
 - Aktuelles Repertoire (Aktuelle Stücke hör proben)
@@ -7,4 +10,4 @@ Features Website:
 Mitgliederbereich:
 - Noten Dropbox?
 - Kontakt liste (NICHT ÖFFENTLICH)
-- 
+- Password login ✅
