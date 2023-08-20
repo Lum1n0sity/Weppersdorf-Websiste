@@ -331,8 +331,8 @@ app.get('/Presseberichte/Load', (req, res) => {
 const transporter = nodemailer.createTransport({
     service: 'Outlook',
     auth: {
-      user: 'raphael221@outlook.de',
-      pass: 'Mama221gvOma1321'
+      user: 'youremail',
+      pass: 'youremailpassword'
     }
   });
 
@@ -340,8 +340,8 @@ app.post('/Kontakt', (req, res) => {
     const { email, subject, message } = req.body;
   
     const mailOptions = {
-      from: 'raphael221@outlook.de',
-      to: 'raphael221@outlook.de',
+      from: 'youremail',
+      to: 'receiveremail',
       subject: subject,
       text: `From: ${email}\n\n${message}`,
     };
