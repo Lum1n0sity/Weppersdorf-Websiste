@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const connection = require('./db');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = 8080;
@@ -107,6 +110,81 @@ app.get('/Termine/GetTermin', (req, res) => {
     });
 });
 
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, './AudioFiles');
+    },
+    filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const filename = `${timestamp}-${file.originalname}`;
+        cb(null, filename);
+    },
+});
+
+const upload = multer({ storage });
+
+app.post('/Repertoire/addaudio', upload.array('metal-pipe'), (req, res) => {
+    const uploadedFiles = req.files;
+
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+        return res.status(400).json({ error: 'No files uploaded.' });
+    }
+
+    const file = uploadedFiles[0];
+
+    const title = req.body.title;
+    const duration = req.body.duration;
+
+    connection.query('INSERT INTO AudioFiles (filename, title, duration) VALUES (?, ?, ?)', [file.filename, title, duration], (err, result) => {
+        if (err) 
+        {
+            console.error('Error inserting Data: ', err);
+            return res.status(500).json({ error: 'Error inserting Data' });
+        } 
+        else 
+        {
+            res.status(200).json({ inserted: true });
+        }
+    });
+});
+
+app.get('/Repertoire/audio/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'AudioFiles', filename);
+
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+
+  const range = req.headers.range;
+  
+  if (range)
+{
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunksize = (end - start) + 1;
+
+    const fileStream = fs.createReadStream(filePath, { start, end });
+    const head = {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunksize,
+      'Content-Type': 'audio/mpeg',
+    };
+
+    res.writeHead(206, head);
+    fileStream.pipe(res);
+  } 
+  else 
+  {
+    const head = {
+      'Content-Length': fileSize,
+      'Content-Type': 'audio/mpeg',
+    };
+    res.writeHead(200, head);
+    fs.createReadStream(filePath).pipe(res);
+  }
+});
 
 app.listen(PORT, () => {
     console.log('API is running!');
