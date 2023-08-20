@@ -3,11 +3,11 @@
 
 Features Website:
 - Termin Creator ✅
-- Presseberichte (API's ?)
-- Kontakt
+- Presseberichte ✅
+- Kontakt ✅
 - Aktuelles Repertoire (Aktuelle Stücke hör proben) ✅
 
 Mitgliederbereich:
 - Noten Dropbox? (vielleicht)
-- Kontakt liste (NICHT ÖFFENTLICH)
+- Kontakt liste (NICHT ÖFFENTLICH) ✅
 - Password login ✅

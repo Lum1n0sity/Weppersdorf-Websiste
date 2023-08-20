@@ -4,6 +4,7 @@ const connection = require('./db');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = 8080;
@@ -36,7 +37,7 @@ app.post('/Mitgliederbereich/Auth', (req, res) => {
                 {
                     password_cor = true;
                     console.log(password_cor);
-                    res.json({ ok: password_cor });
+                    res.json({ login: password_cor });
                 }
             }
         }
@@ -123,7 +124,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-app.post('/Repertoire/addaudio', upload.array('metal-pipe'), (req, res) => {
+app.post('/Repertoire/addaudio', upload.array('audio'), (req, res) => {
     const uploadedFiles = req.files;
 
     if (!uploadedFiles || uploadedFiles.length === 0) {
@@ -185,6 +186,179 @@ app.get('/Repertoire/audio/:filename', (req, res) => {
     fs.createReadStream(filePath).pipe(res);
   }
 });
+
+app.post('/Mitgliederbereich/Add-Kontakt-Liste', (req, res) => {
+    const name = req.body.name;
+    const email = req.body.email;
+
+    connection.query('INSERT INTO Mitgliederbereich (name, email) VALUES (?, ?)', [name, email], (err, result) => {
+        if (err)
+        {
+            console.error('Error inserting data: ', err);+
+            res.status(500).json({ error: 'Error inserting data!' });
+        }
+        else
+        {
+            res.status(200).json({ message: 'Mitglied Added' });
+        }
+    })
+});
+
+app.get('/Migliederbereich/Kontakt-Liste', (req, res) => {
+    connection.query('SELECT name, email FROM Mitgliederbereich WHERE id > 1', (err, result) => {
+        if (err) 
+        {
+            console.error('Error executing query: ', err);
+            res.status(500).json({ error: 'Error executing query!' });
+        } 
+        else 
+        {
+            const names = result.map(row => row.name);
+            const emails = result.map(row => row.email);
+
+            console.log('Names: ', names);
+            console.log('Emails: ', emails);
+
+            res.status(200).json({ names, emails });
+        }
+    });
+});
+
+const storage_pb = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, './PB_Images/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname);
+    },
+});
+
+const upload_pb = multer({ storage: storage_pb });
+
+app.post('/Presseberichte/Add', upload_pb.single('pb_img'), (req, res) => {
+    const img = req.file;
+    const title = req.body.title;
+    const prev_text = req.body.prev;
+    const link = req.body.link;
+
+    if (!img) 
+    {
+        return res.status(400).json({ error: "Error uploading Image!" });
+    }
+
+    const { originalname, mimetype, size } = img;
+
+    const imageInfo = {
+        filename: originalname,
+        mimetype,
+        size,
+        title,
+        prev_text,
+        link
+    };
+
+    connection.query('INSERT INTO Presseberichte SET ?', imageInfo, (err, result) => {
+        if (err) 
+        {
+            console.error('Error inserting data: ', err);
+            res.status(500).json({ error: "Error inserting data!" });
+        } 
+        else 
+        {
+            res.status(200).json({ message: 'Data Uploaded!' });
+        }
+    });
+});
+
+const imageDirectory = './PB_Images/';
+
+app.get('/Presseberichte/Load', (req, res) => {
+    let isImageURLDone = false;
+    let isQueryDone = false;
+
+    let imageUrls = []; // Declare these variables outside of the callback functions
+    let titles = [];
+    let prev_texts = [];
+    let links = [];
+
+    fs.readdir(imageDirectory, (err, files) => {
+        if (err) {
+            console.error('Error reading directory: ', err);
+            return res.status(500).json({ error: "Error reading directory!" });
+        }
+
+        const imageFiles = files.filter(file => {
+            const extname = path.extname(file).toLowerCase();
+            return extname === '.jpg' || extname === '.jpeg' || extname === '.png' || extname === '.gif';
+        });
+
+        if (imageFiles.length === 0) {
+            res.status(404).json({ error: "No images found!" });
+        } else {
+            imageUrls = imageFiles.map(file => {
+                return {
+                    filename: file,
+                    url: `/PB_Images/${file}`
+                };
+            });
+
+            isImageURLDone = true;
+
+            if (isQueryDone) {
+                res.status(200).json({ imageUrls, titles, prev_texts, links });
+            }
+        }
+    });
+
+    connection.query('SELECT title, prev_text, link FROM Presseberichte', (err, result) => {
+        if (err) {
+            console.error('Error executing query: ', err);
+            res.status(500).json({ error: "Error executing query!" });
+        } else {
+            titles = result.map(row => row.title);
+            prev_texts = result.map(row => row.prev_text);
+            links = result.map(row => row.link);
+
+            isQueryDone = true;
+
+            if (isImageURLDone) {
+                res.status(200).json({ imageUrls, titles, prev_texts, links });
+            }
+        }
+    });
+});
+
+const transporter = nodemailer.createTransport({
+    service: 'Outlook',
+    auth: {
+      user: 'raphael221@outlook.de',
+      pass: 'Mama221gvOma1321'
+    }
+  });
+
+app.post('/Kontakt', (req, res) => {
+    const { email, subject, message } = req.body;
+  
+    const mailOptions = {
+      from: 'raphael221@outlook.de',
+      to: 'raphael221@outlook.de',
+      subject: subject,
+      text: `From: ${email}\n\n${message}`,
+    };
+  
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) 
+      {
+        console.error('Error sending email: ', error);
+        res.status(500).json({ error: 'Error sending email' });
+      } 
+      else 
+      {
+        console.log('Email sent: ', info.response);
+        res.status(200).json({ message: 'Email sent successfully' });
+      }
+    });
+  });
 
 app.listen(PORT, () => {
     console.log('API is running!');
